@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Business Page - BokaDirekt</title>
+<style>
+body { margin: 0; font-family: Arial, sans-serif; background-color: #f7f7f7; }
+
+/* HEADER */
+header { background: white; padding: 15px 40px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e5e5e5; position: sticky; top: 0; z-index: 100; }
+.logo { font-size: 24px; font-weight: bold; color: #1fb59a; }
+nav a { margin-left: 20px; text-decoration: none; color: #333; font-weight: 500; }
+nav a:hover { color: #1fb59a; }
+
+/* Business Image Banner */
+.business-banner { width: 100%; max-height: 300px; overflow: hidden; display: flex; justify-content: center; align-items: center; margin-top: 20px; }
+.business-banner img { width: 100%; max-height: 300px; object-fit: cover; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+
+/* Main container */
+.main-container { display: flex; max-width: 1100px; margin: 40px auto; gap: 40px; padding: 0 20px; flex-wrap: wrap; }
+
+/* Business Info */
+.business-info { flex: 1 1 300px; background: white; padding: 20px; border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); min-width: 280px; }
+.business-info h2 { margin-top: 0; color: #333; }
+.business-info p { margin: 8px 0; color: #666; font-size: 14px; }
+
+/* Staff section */
+.staff-section { flex: 2 1 600px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; }
+.staff-card { background: white; border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); overflow: hidden; transition: 0.2s; padding: 15px; display: flex; flex-direction: column; justify-content: space-between; }
+.staff-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+.staff-card h3 { margin: 0 0 10px; font-size: 18px; color: #333; }
+.staff-card p { margin: 0 0 6px; font-size: 14px; color: #666; }
+.staff-card .rating { color: #1fb59a; font-weight: bold; margin-bottom: 10px; }
+.staff-card button { background: #1fb59a; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 14px; margin-top: 5px; }
+.staff-card button:hover { background: #169e86; }
+.staff-buttons { display: flex; gap: 10px; margin-top: 10px; }
+
+/* Modal */
+.modal { display: none; position: fixed; z-index: 500; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
+.modal-content { background: #fff; margin: 10% auto; padding: 20px; border-radius: 12px; width: 90%; max-width: 400px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); position: relative; }
+.close { position: absolute; top: 10px; right: 15px; font-size: 22px; font-weight: bold; color: #333; cursor: pointer; }
+.modal-content input, .modal-content textarea, .modal-content select { width: 100%; padding: 10px; margin: 10px 0; border-radius: 8px; border: 1px solid #ddd; font-size: 14px; }
+.modal-content button.submit-btn { background: #1fb59a; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 14px; margin-top: 10px; width: 100%; }
+.modal-content button.submit-btn:hover { background: #169e86; }
+</style>
+</head>
+<body>
+
+<div id="headerContainer"></div>
+
+<!-- Business Image -->
+<div class="business-banner">
+  <img id="businessImage" src="" alt="Business Banner">
+</div>
+
+<div class="main-container">
+  <!-- Business Info -->
+  <div class="business-info">
+    <h2 id="businessName"></h2>
+    <p><strong>Address:</strong> <span id="businessAddress"></span></p>
+    <p><strong>Phone:</strong> <span id="businessPhone"></span></p>
+    <p><strong>Description:</strong> <span id="businessDescription"></span></p>
+  </div>
+
+  <!-- Staff Cards -->
+  <div class="staff-section" id="staffSection"></div>
+</div>
+
+<!-- Review Modal -->
+<div id="reviewModal" class="modal">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <h3>Write a Review</h3>
+    <input type="text" id="reviewTitle" placeholder="Title (optional)">
+    <textarea id="reviewComment" placeholder="Your review..." rows="4"></textarea>
+    <label for="reviewRating">Rating:</label>
+    <select id="reviewRating">
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+      <option value="5" selected>5</option>
+    </select>
+    <button class="submit-btn" id="submitReview">Submit Review</button>
+  </div>
+</div>
+
+<!-- Booking Modal -->
+<div id="bookingModal" class="modal">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <h3>Book Appointment</h3>
+    <input type="text" id="bookingStaff" disabled>
+    <label for="bookingTime">Available Times:</label>
+    <select id="bookingTime"></select>
+    <label for="bookingService">Service:</label>
+    <select id="bookingService"></select>
+    <button class="submit-btn" id="submitBooking">Book</button>
+  </div>
+</div>
+
+<script src="../backend_js/import_header.js"></script>
+<script src="../backend_js/login_and_cookie_handler.js"></script>
+<script>
+const BASE_URL = "http://localhost:8000";
+const businessId = getCookie("business_id");
+const userId = getCookie("user_id");
+let currentStaffId = null;
+let currentBookingStaff = null;
+let services = [];
+
+// Fetch business and staff data
+window.addEventListener("DOMContentLoaded", async () => {
+    if (!businessId) return;
+    try {
+        const res = await fetch(`${BASE_URL}/businesses/${businessId}`);
+        const data = await res.json();
+        const business = data.business;
+        document.getElementById("businessName").textContent = business.business_name;
+        document.getElementById("businessAddress").textContent = business.adress;
+        document.getElementById("businessPhone").textContent = business.phone_number;
+        document.getElementById("businessDescription").textContent = business.description;
+        if (business.image_url) document.getElementById("businessImage").src = BASE_URL + business.image_url;
+        services = data.services;
+
+        const staffSection = document.getElementById("staffSection");
+        staffSection.innerHTML = "";
+        data.staff.forEach(staff => {
+            const card = document.createElement("div");
+            card.className="staff-card";
+            card.innerHTML=`
+                <h3>${staff.first_name} ${staff.last_name}</h3>
+                <p class="rating">Available from: ${staff.availability.map(a=>new Date(a.available_from).toLocaleString()).join(", ")}</p>
+                <div class="staff-buttons">
+                    <button class="writeReviewBtn">Skriv recension</button>
+                    <button class="bookBtn">Boka tid</button>
+                </div>
+            `;
+            staffSection.appendChild(card);
+
+            // Review button
+            card.querySelector(".writeReviewBtn").addEventListener("click", ()=>{
+                if(!userId){ alert("You must be logged in."); return; }
+                currentStaffId=staff.staff_id;
+                document.getElementById("reviewModal").style.display="block";
+            });
+
+            // Booking button
+            card.querySelector(".bookBtn").addEventListener("click", ()=>{
+                if(!userId){ alert("You must be logged in."); return; }
+                currentBookingStaff=staff;
+                document.getElementById("bookingStaff").value = staff.first_name + " " + staff.last_name;
+
+                // Populate times
+                const timeSelect=document.getElementById("bookingTime");
+                timeSelect.innerHTML="";
+                staff.availability.forEach(a=>{
+                    const opt=document.createElement("option");
+                    opt.value=a.available_from;
+                    opt.textContent=new Date(a.available_from).toLocaleString();
+                    timeSelect.appendChild(opt);
+                });
+
+                // Populate services
+                const serviceSelect=document.getElementById("bookingService");
+                serviceSelect.innerHTML="";
+                services.forEach(s=>{
+                    const opt=document.createElement("option");
+                    opt.value=s.service_id;
+                    opt.textContent=s.service_name;
+                    serviceSelect.appendChild(opt);
+                });
+
+                document.getElementById("bookingModal").style.display="block";
+            });
+        });
+    } catch(err){ console.error(err); }
+});
+
+// Modal close
+document.querySelectorAll(".modal .close").forEach(span => span.onclick=()=>{ span.parentElement.parentElement.style.display="none"; });
+window.onclick=(e)=>{ if(e.target.classList.contains("modal")) e.target.style.display="none"; };
+
+// Submit review
+document.getElementById("submitReview").addEventListener("click", async()=>{
+    const title=document.getElementById("reviewTitle").value;
+    const comment=document.getElementById("reviewComment").value;
+    const rating=parseInt(document.getElementById("reviewRating").value);
+    if(!currentStaffId) return alert("Staff not selected.");
+    const res=await fetch(`${BASE_URL}/reviews`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({user_id:parseInt(userId),staff_id:currentStaffId,title,comment,rating})
+    });
+    if(res.ok){ alert("Review submitted!"); document.getElementById("reviewModal").style.display="none"; }
+    else alert("Failed to submit review.");
+});
+
+// Submit booking
+document.getElementById("submitBooking").addEventListener("click", async()=>{
+    const selectedTime=document.getElementById("bookingTime").value;
+    const selectedService=parseInt(document.getElementById("bookingService").value);
+    if(!currentBookingStaff || !selectedTime || !selectedService) return alert("Select all fields.");
+    const res=await fetch(`${BASE_URL}/register_booking`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({user_id:parseInt(userId),staff_id:currentBookingStaff.staff_id,service_id:selectedService,start_time:selectedTime})
+    });
+    if(res.ok){ alert("Booking successful!"); document.getElementById("bookingModal").style.display="none"; }
+    else alert("Failed to book appointment.");
+});
+</script>
+<script src="../backend_js/import_header.js"></script>
+<script src="../backend_js/login_and_cookie_handler.js"></script>
+</body>
+</html>

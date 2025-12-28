@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Logga in - BokaDirekt</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f7f7f7;
+    }
+
+    header {
+      background: white;
+      padding: 15px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #e5e5e5;
+    }
+
+    .logo {
+      font-size: 24px;
+      font-weight: bold;
+      color: #1fb59a;
+    }
+
+    nav a {
+      margin-left: 20px;
+      text-decoration: none;
+      color: #333;
+      font-weight: 500;
+    }
+    nav a:hover {
+      color: #1fb59a;
+    }
+
+    .login-wrapper {
+      max-width: 400px;
+      margin: 100px auto;
+      background: white;
+      padding: 30px;
+      border-radius: 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      text-align: center;
+    }
+
+    .login-wrapper h2 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+
+    .login-wrapper input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      margin-bottom: 15px;
+      font-size: 15px;
+    }
+
+    .login-wrapper button {
+      background: #1fb59a;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      width: 100%;
+    }
+
+    .login-wrapper button:hover {
+      background: #169e86;
+    }
+
+    .error {
+      color: red;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="headerContainer"></div>
+
+<div class="login-wrapper">
+  <h2>Logga in</h2>
+  <input type="email" id="email" placeholder="Email" required />
+  <button id="loginBtn">Logga in</button>
+  <p class="error" id="errorMsg"></p>
+</div>
+
+<script src="../backend_js/import_header.js"></script>
+<script src="../backend_js/login_and_cookie_handler.js"></script>
+<script>
+const BASE_URL = "http://localhost:8000";
+
+document.getElementById("loginBtn").addEventListener("click", async () => {
+  const email = document.getElementById("email").value;
+  const errorMsg = document.getElementById("errorMsg");
+
+  if (!email) {
+    errorMsg.textContent = "Vänligen ange en email.";
+    return;
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ email })
+    });
+
+    if (response.ok) {
+      window.location.href = "/"; 
+    } else {
+      const data = await response.json();
+      errorMsg.textContent = data.detail || "Något gick fel, försök igen.";
+    }
+  } catch (err) {
+    errorMsg.textContent = "Kunde inte ansluta till servern.";
+    console.error(err);
+  }
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BokaDirekt Teal Style Frontend</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f7f7f7;
+    }
+
+    /* HEADER */
+    header {
+      background: white;
+      padding: 15px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #e5e5e5;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      font-size: 24px;
+      font-weight: bold;
+      color: #1fb59a;
+    }
+
+    nav a {
+      margin-left: 20px;
+      text-decoration: none;
+      color: #333;
+      font-weight: 500;
+    }
+    nav a:hover {
+      color: #1fb59a;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #b2f7e9, #1fb59a);
+      padding: 80px 20px;
+      text-align: center;
+      color: white;
+    }
+
+    .hero h1 {
+      font-size: 36px;
+      margin-bottom: 20px;
+    }
+
+    .search-box {
+      background: white;
+      padding: 15px;
+      border-radius: 12px;
+      display: inline-flex;
+      gap: 10px;
+      width: 80%;
+      max-width: 600px;
+    }
+
+    .search-box input {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+
+    .search-box button {
+      background: #1fb59a;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    #searchResults div {
+      color: #444;
+    }
+
+    .search-box button:hover {
+      background: #169e86;
+    }
+
+    .results {
+      padding: 40px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      overflow: hidden;
+      transition: 0.2s;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    }
+
+    .card img {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+      border-bottom: 1px solid #eee;
+    }
+
+    .cards-wrapper {
+      max-width: 1100px;  
+      margin: 60px auto;   
+      padding: 0 20px;       
+    }
+
+    .cards-grid {
+      display: grid;  
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 24px;       
+    }
+
+    .card-content {
+      padding: 15px;
+    }
+
+    .card-content h3 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      color: #333;
+    }
+
+    .card-content p {
+      margin: 0 0 6px;
+      font-size: 14px;
+      color: #666;
+    }
+
+    .price {
+      color: #1fb59a;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<div id="headerContainer"></div>
+
+<section class="hero">
+  <h1>Hitta och boka behandlingar nära dig</h1>
+  <div class="search-box">
+    <input type="text" placeholder="Sök tjänst eller företag..." />
+    <button>Sök</button>
+  </div>
+  <div id="searchResults" style="
+    background: white;
+    width: 80%;
+    max-width: 600px;
+    margin: 10px auto 0;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    display: none;
+    text-align: left;
+    overflow: hidden;
+"></div>
+</section>
+
+<div class="cards-wrapper">
+  <div id="businessList" class="cards-grid">
+  </div>
+</div>
+
+</section>  
+
+</body>
+
+
+<script src="../backend_js/import_header.js"></script>
+<script src="../backend_js/login_and_cookie_handler.js"></script>
+<script>
+
+const BASE_URL = "http://localhost:8000";
+
+fetch(`${BASE_URL}/businesses`)
+  .then(res => res.json())
+  .then(businesses => {
+    const container = document.getElementById("businessList");
+
+    businesses.forEach(business => {
+      const card = document.createElement("div");
+      card.className = "card";
+
+      const imageUrl = BASE_URL + business.image_url;
+
+      card.innerHTML = `
+        <img src="${imageUrl}" alt="${business.business_name}">
+        <div class="card-content">
+          <h3>${business.business_name}</h3>
+          <p>${business.description}</p>
+        </div>
+      `;
+        
+      card.style.cursor = "pointer";
+      card.addEventListener("click", () => {
+        setCookie("business_id", business.business_id, 1); // save for 1 day
+        window.location.href = "/business";
+      });
+
+      container.appendChild(card);
+    });
+  })
+  .catch(error => {
+    console.error("Kunde inte hämta företag:", error);
+  });
+
+const searchInput = document.querySelector(".search-box input");
+const searchResults = document.getElementById("searchResults");
+
+let businesses = [];
+let services = [];
+
+// ---------------- FETCH DATA ----------------
+Promise.all([
+  fetch(`${BASE_URL}/businesses`).then(r => r.json()),
+  fetch(`${BASE_URL}/list_services`).then(r => r.json())
+]).then(([businessData, serviceData]) => {
+  businesses = businessData;
+  services = serviceData;
+  renderBusinessCards(businesses);
+});
+
+// ---------------- RENDER BUSINESS CARDS ----------------
+function renderBusinessCards(list) {
+  const container = document.getElementById("businessList");
+  container.innerHTML = "";
+
+  list.forEach(business => {
+    const card = document.createElement("div");
+    card.className = "card";
+
+    card.innerHTML = `
+      <img src="${BASE_URL + business.image_url}">
+      <div class="card-content">
+        <h3>${business.business_name}</h3>
+        <p>${business.description}</p>
+      </div>
+    `;
+
+    card.onclick = () => {
+      setCookie("business_id", business.business_id, 1);
+      window.location.href = "/business";
+    };
+
+    container.appendChild(card);
+  });
+}
+
+// ---------------- LIVE SEARCH ----------------
+searchInput.addEventListener("input", () => {
+  const query = searchInput.value.toLowerCase().trim();
+  searchResults.innerHTML = "";
+
+  if (!query) {
+    searchResults.style.display = "none";
+    return;
+  }
+  
+  const businessMatches = businesses.filter(b =>
+    b.business_name.toLowerCase().includes(query)
+  );
+
+  const serviceMatches = services.filter(s =>
+    s.service_name.toLowerCase().includes(query) ||
+    s.category_name.toLowerCase().includes(query)
+  );
+
+    // Businesses
+    businessMatches.forEach(b => {
+      const div = document.createElement("div");
+      div.style.padding = "12px 16px";
+      div.style.cursor = "pointer";
+      div.innerHTML = `🏢 <strong>${b.business_name}</strong>`;
+
+      div.onclick = () => {
+        setCookie("business_id", b.business_id, 1);
+        window.location.href = "/business";
+      };
+
+      searchResults.appendChild(div);
+    });
+
+    // Services
+    serviceMatches.forEach(s => {
+      const div = document.createElement("div");
+      div.style.padding = "12px 16px";
+      div.style.cursor = "pointer";
+      div.innerHTML = `
+        ✂️ <strong>${s.service_name}</strong>
+        <div style="font-size:12px;color:#666">
+          ${s.business_name} · ${s.category_name}
+        </div>
+      `;
+
+      div.onclick = () => {
+        setCookie("business_id", s.business_id, 1);
+        window.location.href = "/business";
+      };
+
+      searchResults.appendChild(div);
+    });
+
+    searchResults.style.display =
+      businessMatches.length || serviceMatches.length ? "block" : "none";
+  });
+
+  // Hide results when clicking outside
+  document.addEventListener("click", e => {
+    if (!e.target.closest(".search-box")) {
+      searchResults.style.display = "none";
+    }
+  });
+</script>
+</html>
