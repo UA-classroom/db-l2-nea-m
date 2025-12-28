@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mina sidor – BokaDirekt</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f7f7f7;
+    }
+
+    /* HEADER */
+    header {
+      background: white;
+      padding: 15px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #e5e5e5;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      font-size: 24px;
+      font-weight: bold;
+      color: #1fb59a;
+    }
+
+    nav a {
+      margin-left: 20px;
+      text-decoration: none;
+      color: #333;
+      font-weight: 500;
+    }
+
+    nav a:hover {
+      color: #1fb59a;
+    }
+
+    /* PAGE LAYOUT */
+    .page-wrapper {
+      max-width: 1200px;
+      margin: 40px auto;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 30px;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    /* BOOKINGS */
+    .bookings {
+      display: grid;
+      gap: 20px;
+    }
+
+    .booking-card {
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      padding: 20px;
+      transition: 0.2s;
+    }
+
+    .booking-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    }
+
+    .booking-card h3 {
+      margin: 0 0 8px;
+      color: #1fb59a;
+      font-size: 18px;
+    }
+
+    .booking-card p {
+      margin: 4px 0;
+      font-size: 14px;
+      color: #555;
+    }
+
+    .booking-actions {
+    margin-top: 12px;
+    text-align: right;
+    }
+
+    .booking-actions button {
+    background: #d9534f;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    }
+
+    .booking-actions button:hover {
+    background: #c9302c;
+    }
+
+    /* FAVORITES */
+    .favorites-box {
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      padding: 20px;
+      height: fit-content;
+    }
+
+    .favorite-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .favorite-item:last-child {
+      border-bottom: none;
+    }
+
+    .favorite-item span {
+      font-size: 14px;
+      color: #333;
+    }
+
+    .favorite-item button {
+      background: transparent;
+      border: none;
+      color: #d9534f;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .favorite-item button:hover {
+      text-decoration: underline;
+    }
+
+    .favorite-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #fff;
+        border-radius: 12px;
+        padding: 10px 15px;
+        margin-bottom: 10px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    .favorite-item button {
+        background: #ff4b5c;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 10px;
+        cursor: pointer;
+    }
+
+    .favorite-item button:hover {
+        background: #e63950;
+    }
+  </style>
+</head>
+<body>
+
+<div id="headerContainer"></div>
+
+<div class="page-wrapper">
+
+  <!-- BOOKINGS -->
+    <div class="bookings-section">
+        <h2>Mina bokningar</h2>
+        <div id="bookingsList"></div>
+    </div>
+
+    <div class="favorites-section">
+        <h2>Mina favoriter</h2>
+        <div id="favoritesList"></div>
+    </div>
+
+</div>
+
+</body>
+
+<script>
+
+function cancelBooking(bookingId, cardElement) {
+  if (!confirm("Är du säker på att du vill avboka denna tid?")) return;
+
+  fetch(`${BASE_URL}/bookings/${bookingId}`, {
+    method: "DELETE",
+    credentials: "include"
+  })
+  .then(res => {
+    if (!res.ok) throw new Error("Kunde inte avboka");
+    return res.json();
+  })
+  .then(() => {
+    // Remove card from UI
+    cardElement.remove();
+  })
+  .catch(err => {
+    console.error(err);
+    alert("Något gick fel vid avbokning.");
+  });
+}
+
+  const BASE_URL = "http://localhost:8000";
+
+function formatDate(dateString) {
+  const date = new Date(dateString);
+  return date.toLocaleString("sv-SE", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  });
+}
+
+fetch(`${BASE_URL}/list_bookings`, {
+  credentials: "include"   // ⭐ superviktigt för cookies
+})
+  .then(res => {
+    if (!res.ok) throw new Error("Inte inloggad");
+    return res.json();
+  })
+  .then(bookings => {
+    const container = document.getElementById("bookingsList");
+    container.innerHTML = "";
+
+    if (bookings.length === 0) {
+      container.innerHTML = "<p>Du har inga bokningar.</p>";
+      return;
+    }
+
+    bookings.forEach(b => {
+      const card = document.createElement("div");
+      card.className = "booking-card";
+      card.dataset.bookingId = b.booking_id;
+
+        card.innerHTML = `
+            <h3>${b.service_name}</h3>
+            <p><strong>Personal:</strong> ${b.first_name} ${b.last_name}</p>
+            <p><strong>Företag:</strong> ${b.business_name}</p>
+            <p><strong>Tid:</strong> ${new Date(b.start_time).toLocaleString()}</p>
+            <button class="cancel-btn">Avboka</button>
+        `;
+
+        card.querySelector(".cancel-btn").addEventListener("click", () => {
+            cancelBooking(b.booking_id, card);
+        });
+
+      container.appendChild(card);
+    });
+  })
+  .catch(err => {
+    console.error(err);
+    document.getElementById("bookingsList").innerHTML =
+      "<p>Du måste vara inloggad för att se bokningar.</p>";
+  });
+
+    function getFavorites() {
+        const userId = getCookie("user_id");
+        const container = document.getElementById("favoritesList");
+
+        fetch(`${BASE_URL}/favorites`, {
+            method: "GET",
+            credentials: "include"
+        })
+        .then(res => res.json())
+        .then(favorites => {
+            container.innerHTML = ""; 
+
+        favorites.forEach(fav => {
+            const div = document.createElement("div");
+            div.className = "favorite-item";
+            div.dataset.businessId = fav.business_id;
+
+            div.innerHTML = `
+                <span>${fav.business_name}</span>
+                <button class="remove-btn">Ta bort</button>
+            `;
+
+            div.querySelector(".remove-btn").addEventListener("click", () => {
+                removeFavorite(userId, fav.business_id, div);
+            });
+
+            container.appendChild(div);
+            });
+         })
+        .catch(err => {
+            console.error("Could not fetch favorites:", err);
+        });
+        }
+
+    function removeFavorite(userId, businessId, element) {
+    fetch(`${BASE_URL}/favorites`, {
+        method: "DELETE",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ user_id: parseInt(userId), business_id: businessId })
+    })
+    .then(res => {
+        if (!res.ok) throw new Error("Failed to remove favorite");
+        return res.json();
+    })
+    .then(() => {
+        element.remove();
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Could not remove favorite.");
+    });
+    }
+
+    window.onload = () => {
+        getFavorites();
+    };
+</script>
+<script src="../backend_js/import_header.js"></script>
+<script src="../backend_js/login_and_cookie_handler.js"></script>
+</html>
